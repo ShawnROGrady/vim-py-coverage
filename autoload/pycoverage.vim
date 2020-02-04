@@ -16,9 +16,8 @@ let s:autoload_root_dir = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 
 function! pyCoverage#shell(cmdArgs)
 	let pathToScript= s:autoload_root_dir.'/../python/main.py'
-	let coverCmd='coverage run -m unittest discover'
 	let curFile=@%
-	let output=systemlist(coverCmd." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
+	let output=systemlist(config#coverCmd()." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
 	if v:shell_error
 		" TODO: maybe report something?
 		echo output
@@ -29,7 +28,7 @@ function! pyCoverage#shell(cmdArgs)
 endfunction
 
 function! pyCoverage#python(cmdArgs)
-	let coverCmd='coverage run -m unittest discover > /dev/null 2>&1' " TODO: I'm assuming this won't work across platforms
+	let coverCmd=config#coverCmd().' > /dev/null 2>&1' " TODO: I'm assuming this won't work across platforms
 	let curFile=@%
 	let coverOut=system(coverCmd." && ".'coverage json -o -')
 	"" TODO: there has to be a better way to do this
