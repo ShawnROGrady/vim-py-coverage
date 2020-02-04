@@ -3,19 +3,48 @@ function! pyCoverage#Clear(cmdArgs)
 	call clearmatches()
 endfunction
 
-
 "" Buffer highlights coverage in the current buffer
 function! pyCoverage#Buffer(cmdArgs)
-	let pathToScript='/Users/Shawn/dev/src/github.com/ShawnROGrady/vim-py-coverage'
+	if g:py_coverage_py_cmd == ''
+		call pyCoverage#shell(a:cmdArgs)
+	else
+		call pyCoverage#python(a:cmdArgs)
+	endif
+endfunction
+
+let s:autoload_root_dir = fnamemodify(resolve(expand('<sfile>:p')), ':h')
+
+function! pyCoverage#shell(cmdArgs)
+	let pathToScript= s:autoload_root_dir.'/../python/main.py'
 	let coverCmd='coverage run -m unittest discover'
 	let curFile=@%
-	let output=systemlist(coverCmd." && ".'coverage json -o -'." | python ".pathToScript."/main.py"." ".curFile)
+	let output=systemlist(coverCmd." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
 	if v:shell_error
 		" TODO: maybe report something?
 		echo output
-		return
+		return 1
 	endif
 
+	call pyCoverage#overlay(output)
+endfunction
+
+function! pyCoverage#python(cmdArgs)
+	let coverCmd='coverage run -m unittest discover > /dev/null 2>&1' " TODO: I'm assuming this won't work across platforms
+	let curFile=@%
+	let coverOut=system(coverCmd." && ".'coverage json -o -')
+	"" TODO: there has to be a better way to do this
+	if g:py_coverage_py_cmd == 'python3'
+		python3 plugin.parse_and_assign("l:coverOut", "l:curFile", "l:output")
+	elseif g:py_coverage_py_cmd == 'python'
+		python plugin.parse_and_assign("l:coverOut", "l:curFile", "l:output")
+	else
+		echo "unkown cmd: ".g:py_coverage_py_cmd
+		return 1
+	endif
+	call pyCoverage#overlay(output)
+endfunction
+
+function! pyCoverage#overlay(output)
 	"" first mark everything as normal text
 	let curLine = 1
 	while curLine <= line('$')
@@ -23,7 +52,7 @@ function! pyCoverage#Buffer(cmdArgs)
 		let curLine += 1
 	endwhile
 
-	for outLine in output
+	for outLine in a:output
 		let pos = split(outLine, ':')
 		if len(pos) != 2
 			continue
