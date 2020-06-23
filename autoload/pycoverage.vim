@@ -14,10 +14,15 @@ endfunction
 
 let s:autoload_root_dir = fnamemodify(resolve(expand('<sfile>:p')), ':h')
 
+"" helper to create the call to coverage
+function! pyCoverage#coverageCmd(cmdArgs)
+	return "coverage run -m ".config#testRunner()." ".a:cmdArgs
+endfunction
+
 function! pyCoverage#shell(cmdArgs)
 	let pathToScript= s:autoload_root_dir.'/../python/main.py'
 	let curFile=@%
-	let output=systemlist(config#coverCmd()." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
+	let output=systemlist(pyCoverage#coverageCmd(a:cmdArgs)." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
 	if v:shell_error
 		" TODO: maybe report something?
 		echo output
@@ -28,14 +33,25 @@ function! pyCoverage#shell(cmdArgs)
 endfunction
 
 function! pyCoverage#python(cmdArgs)
-	let coverCmd=config#coverCmd().' > /dev/null 2>&1' " TODO: I'm assuming this won't work across platforms
 	let curFile=@%
-	let coverOut=system(coverCmd." && ".'coverage json -o -')
+
+	let coverOut=system(pyCoverage#coverageCmd(a:cmdArgs))
+	if v:shell_error
+		echo coverOut
+		return 1
+	endif
+
+	let coverJSON=system('coverage json -o -')
+	if v:shell_error
+		echo coverJSON
+		return 1
+	endif
+
 	"" TODO: there has to be a better way to do this
 	if g:py_coverage_py_cmd == 'python3'
-		python3 plugin.parse_and_assign("l:coverOut", "l:curFile", "l:output")
+		python3 plugin.parse_and_assign("l:coverJSON", "l:curFile", "l:output")
 	elseif g:py_coverage_py_cmd == 'python'
-		python plugin.parse_and_assign("l:coverOut", "l:curFile", "l:output")
+		python plugin.parse_and_assign("l:coverJSON", "l:curFile", "l:output")
 	else
 		echo "unkown cmd: ".g:py_coverage_py_cmd
 		return 1
