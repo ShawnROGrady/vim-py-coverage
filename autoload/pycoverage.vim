@@ -22,7 +22,7 @@ endfunction
 function! pyCoverage#shell(cmdArgs)
 	let pathToScript= s:autoload_root_dir.'/../python/main.py'
 	let curFile=@%
-	let output=systemlist(pyCoverage#coverageCmd(a:cmdArgs)." && ".'coverage json -o -'." | python ".pathToScript." ".curFile)
+	let output=systemlist(pyCoverage#coverageCmd(a:cmdArgs)." && ".'coverage json -o - --include='.curFile." | python ".pathToScript." ".curFile)
 	if v:shell_error
 		" TODO: maybe report something?
 		echo output
@@ -41,7 +41,7 @@ function! pyCoverage#python(cmdArgs)
 		return 1
 	endif
 
-	let coverJSON=system('coverage json -o -')
+	let coverJSON=system('coverage json -o - --include='.curFile)
 	if v:shell_error
 		echo coverJSON
 		return 1
